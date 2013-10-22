@@ -21,7 +21,7 @@ namespace TRPGChatRoom.GUI
 
         }
 
-        private void FrmLogin_FormClosed(object sender, EventArgs e)
+        private void FrmLogin_FormClosed(object sender, FormClosedEventArgs e)
         {
             ((FrmMain)TRPGChatRoom.frmMain).CleanUp();
             TRPGChatRoom.frmLogin.Close();
@@ -30,9 +30,14 @@ namespace TRPGChatRoom.GUI
 
         private void button1_Click(object sender, EventArgs e)
         {
-            this.Hide();
             TRPGChatRoom.frmMain.Show();
             TRPGChatRoom.frmMain.Focus();
+            this.Hide();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

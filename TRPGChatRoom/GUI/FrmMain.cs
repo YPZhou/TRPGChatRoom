@@ -19,12 +19,16 @@ namespace TRPGChatRoom.GUI
         {            
         }
 
-        private void FrmMain_FormClosed(object sender, EventArgs e)
+        private void FrmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            this.sfmlTick.Enabled = false;
-            this.Hide();
-            TRPGChatRoom.frmLogin.Show();
-            TRPGChatRoom.frmLogin.Focus();
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                TRPGChatRoom.frmLogin.Show();
+                TRPGChatRoom.frmLogin.Focus();
+                this.sfmlTick.Enabled = false;
+                this.Hide();
+                e.Cancel = true;
+            }
         }
 
         private void SFMLUpdate(object sender, EventArgs e)
