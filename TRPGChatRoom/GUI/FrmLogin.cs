@@ -23,13 +23,15 @@ namespace TRPGChatRoom.GUI
 
         private void FrmLogin_FormClosed(object sender, FormClosedEventArgs e)
         {
-            ((FrmMain)TRPGChatRoom.frmMain).CleanUp();
+            //((FrmMain)TRPGChatRoom.frmMain).CleanUp();
             TRPGChatRoom.frmLogin.Close();
             Application.Exit();
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
+            ((FrmMain)TRPGChatRoom.frmMain).IsHost = true;
+            ((FrmMain)TRPGChatRoom.frmMain).StartTimer();
             TRPGChatRoom.frmMain.Show();
             TRPGChatRoom.frmMain.Focus();
             this.Hide();
@@ -37,7 +39,11 @@ namespace TRPGChatRoom.GUI
 
         private void button2_Click(object sender, EventArgs e)
         {
-
+            ((FrmMain)TRPGChatRoom.frmMain).IsHost = false;
+            ((FrmMain)TRPGChatRoom.frmMain).StartTimer();
+            TRPGChatRoom.frmMain.Show();
+            TRPGChatRoom.frmMain.Focus();
+            this.Hide();
         }
     }
 }
