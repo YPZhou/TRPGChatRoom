@@ -31,7 +31,7 @@ namespace TRPGChatRoom.GUI
         private void button1_Click(object sender, EventArgs e)
         {
             ((FrmMain)TRPGChatRoom.frmMain).IsHost = true;
-            ((FrmMain)TRPGChatRoom.frmMain).StartTimer();
+            ((FrmMain)TRPGChatRoom.frmMain).Init();
             TRPGChatRoom.frmMain.Show();
             TRPGChatRoom.frmMain.Focus();
             this.Hide();
@@ -40,7 +40,7 @@ namespace TRPGChatRoom.GUI
         private void button2_Click(object sender, EventArgs e)
         {
             ((FrmMain)TRPGChatRoom.frmMain).IsHost = false;
-            ((FrmMain)TRPGChatRoom.frmMain).StartTimer();
+            ((FrmMain)TRPGChatRoom.frmMain).Init();
             TRPGChatRoom.frmMain.Show();
             TRPGChatRoom.frmMain.Focus();
             this.Hide();

@@ -31,14 +31,14 @@
             this.components = new System.ComponentModel.Container();
             this.sfmlView = new System.Windows.Forms.Label();
             this.sfmlTick = new System.Windows.Forms.Timer(this.components);
-            this.textBox1 = new System.Windows.Forms.TextBox();
-            this.richTextBox1 = new System.Windows.Forms.RichTextBox();
+            this.txtChat = new System.Windows.Forms.TextBox();
+            this.rtxtPublic = new System.Windows.Forms.RichTextBox();
             this.btnSend = new System.Windows.Forms.Button();
             this.lstUser = new System.Windows.Forms.ListBox();
             this.lbNotice = new System.Windows.Forms.Label();
-            this.tabControl1 = new System.Windows.Forms.TabControl();
+            this.tabChat = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
-            this.tabControl1.SuspendLayout();
+            this.tabChat.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -52,25 +52,25 @@
             // sfmlTick
             // 
             this.sfmlTick.Interval = 40;
-            this.sfmlTick.Tick += new System.EventHandler(this.SFMLUpdate);
+            this.sfmlTick.Tick += new System.EventHandler(this.Update);
             // 
-            // textBox1
+            // txtChat
             // 
-            this.textBox1.Location = new System.Drawing.Point(0, 721);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(729, 21);
-            this.textBox1.TabIndex = 1;
+            this.txtChat.Location = new System.Drawing.Point(0, 721);
+            this.txtChat.Name = "txtChat";
+            this.txtChat.Size = new System.Drawing.Size(729, 21);
+            this.txtChat.TabIndex = 1;
             // 
-            // richTextBox1
+            // rtxtPublic
             // 
-            this.richTextBox1.Enabled = false;
-            this.richTextBox1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.richTextBox1.Location = new System.Drawing.Point(3, 3);
-            this.richTextBox1.Name = "richTextBox1";
-            this.richTextBox1.ReadOnly = true;
-            this.richTextBox1.Size = new System.Drawing.Size(787, 203);
-            this.richTextBox1.TabIndex = 2;
-            this.richTextBox1.Text = "";
+            this.rtxtPublic.Enabled = false;
+            this.rtxtPublic.ImeMode = System.Windows.Forms.ImeMode.NoControl;
+            this.rtxtPublic.Location = new System.Drawing.Point(3, 3);
+            this.rtxtPublic.Name = "rtxtPublic";
+            this.rtxtPublic.ReadOnly = true;
+            this.rtxtPublic.Size = new System.Drawing.Size(787, 203);
+            this.rtxtPublic.TabIndex = 2;
+            this.rtxtPublic.Text = "";
             // 
             // btnSend
             // 
@@ -81,6 +81,7 @@
             this.btnSend.TabIndex = 3;
             this.btnSend.Text = "发送";
             this.btnSend.UseVisualStyleBackColor = true;
+            this.btnSend.Click += new System.EventHandler(this.FrmMain_SendMessage);
             // 
             // lstUser
             // 
@@ -102,18 +103,18 @@
             this.lbNotice.Text = "文字信息";
             this.lbNotice.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
-            // tabControl1
+            // tabChat
             // 
-            this.tabControl1.Controls.Add(this.tabPage1);
-            this.tabControl1.Location = new System.Drawing.Point(2, 483);
-            this.tabControl1.Name = "tabControl1";
-            this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(798, 232);
-            this.tabControl1.TabIndex = 6;
+            this.tabChat.Controls.Add(this.tabPage1);
+            this.tabChat.Location = new System.Drawing.Point(2, 483);
+            this.tabChat.Name = "tabChat";
+            this.tabChat.SelectedIndex = 0;
+            this.tabChat.Size = new System.Drawing.Size(798, 232);
+            this.tabChat.TabIndex = 6;
             // 
             // tabPage1
             // 
-            this.tabPage1.Controls.Add(this.richTextBox1);
+            this.tabPage1.Controls.Add(this.rtxtPublic);
             this.tabPage1.Location = new System.Drawing.Point(4, 22);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
@@ -127,11 +128,11 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1016, 741);
-            this.Controls.Add(this.tabControl1);
+            this.Controls.Add(this.tabChat);
             this.Controls.Add(this.lbNotice);
             this.Controls.Add(this.lstUser);
             this.Controls.Add(this.btnSend);
-            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.txtChat);
             this.Controls.Add(this.sfmlView);
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -142,8 +143,7 @@
             this.Text = "TRPGChatRoom";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmMain_FormClosing);
             this.Load += new System.EventHandler(this.FrmMain_Load);
-            this.GotFocus += new System.EventHandler(this.FrmMain_GotFocus);
-            this.tabControl1.ResumeLayout(false);
+            this.tabChat.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -154,12 +154,12 @@
 
         private System.Windows.Forms.Label sfmlView;
         private System.Windows.Forms.Timer sfmlTick;
-        private System.Windows.Forms.TextBox textBox1;
-        private System.Windows.Forms.RichTextBox richTextBox1;
+        private System.Windows.Forms.TextBox txtChat;
+        private System.Windows.Forms.RichTextBox rtxtPublic;
         private System.Windows.Forms.Button btnSend;
         private System.Windows.Forms.ListBox lstUser;
         private System.Windows.Forms.Label lbNotice;
-        private System.Windows.Forms.TabControl tabControl1;
+        private System.Windows.Forms.TabControl tabChat;
         private System.Windows.Forms.TabPage tabPage1;
 
     }
