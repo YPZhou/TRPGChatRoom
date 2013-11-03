@@ -56,14 +56,16 @@
             // 
             // txtChat
             // 
+            this.txtChat.AcceptsReturn = true;
             this.txtChat.Location = new System.Drawing.Point(0, 721);
+            this.txtChat.Multiline = true;
             this.txtChat.Name = "txtChat";
             this.txtChat.Size = new System.Drawing.Size(729, 21);
             this.txtChat.TabIndex = 1;
+            this.txtChat.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.FrmMain_EnterDown);
             // 
             // rtxtPublic
             // 
-            this.rtxtPublic.Enabled = false;
             this.rtxtPublic.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.rtxtPublic.Location = new System.Drawing.Point(3, 3);
             this.rtxtPublic.Name = "rtxtPublic";
@@ -87,10 +89,11 @@
             // 
             this.lstUser.FormattingEnabled = true;
             this.lstUser.ItemHeight = 12;
-            this.lstUser.Location = new System.Drawing.Point(806, 247);
+            this.lstUser.Location = new System.Drawing.Point(806, 487);
             this.lstUser.Name = "lstUser";
-            this.lstUser.Size = new System.Drawing.Size(198, 484);
+            this.lstUser.Size = new System.Drawing.Size(198, 244);
             this.lstUser.TabIndex = 4;
+            this.lstUser.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.FrmMain_StartWhisper);
             // 
             // lbNotice
             // 

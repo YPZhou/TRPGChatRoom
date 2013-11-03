@@ -13,10 +13,19 @@ namespace TRPGChatRoom.GUI
         private RenderWindow sfmlRenderArea;
 
         private bool isHost;
+        private int port;
         private UdpClient sendClient;
         private UdpClient recvClient;
 
+        private String userName;
+
         private Queue<Byte[]> msgQueue;
+        private Queue<IPEndPoint> endpointQueue;
+
+        private Dictionary<String, IPAddress> userDict;
+        private Dictionary<String, TabPage> whisperDict;
+
+        private Random rand;
 
         public FrmMain()
         {
@@ -24,10 +33,22 @@ namespace TRPGChatRoom.GUI
             this.sfmlRenderArea = new RenderWindow(this.sfmlView.Handle);
 
             this.isHost = false;
+            this.port = 8802;
             this.sendClient = new UdpClient();
             this.recvClient = new UdpClient();
+            this.recvClient.Client.Bind(new IPEndPoint(IPAddress.Any, this.port));
 
             this.msgQueue = new Queue<byte[]>();
+            this.endpointQueue = new Queue<IPEndPoint>();
+
+            this.userDict = new Dictionary<String, IPAddress>();
+            this.whisperDict = new Dictionary<string, TabPage>();
+
+            this.rand = new Random();
+
+            // only for testing whisper, need to be removed later
+            this.userDict.Add("test", IPAddress.Parse("127.0.0.1"));
+            this.UpdateUserList();
         }
 
         public bool IsHost
@@ -50,12 +71,40 @@ namespace TRPGChatRoom.GUI
             }
         }
 
+        public String UserName
+        {
+            set
+            {
+                this.userName = value;
+            }
+        }
+
+        public bool BindHost(String ip)
+        {
+            IPAddress ipAddress;
+            try
+            {
+                ipAddress = IPAddress.Parse(ip);
+            }
+            catch (Exception e)
+            {
+                return false;
+            }
+            if (!this.userDict.ContainsKey("host"))
+            {
+                this.userDict.Add("host", ipAddress);
+            }
+            else
+            {
+
+                this.userDict["host"] = ipAddress;
+            }
+            return true;
+        }
+
         public void Init()
         {
-            this.sfmlTick.Enabled = true;
-
-            IPEndPoint remote = new IPEndPoint(IPAddress.Any, 8802);
-            this.recvClient.Client.Bind(remote);
+            this.sfmlTick.Enabled = true;            
             this.recvClient.BeginReceive(new AsyncCallback(this.ReceiveCallback), null);
         }
 
@@ -70,6 +119,7 @@ namespace TRPGChatRoom.GUI
                 TRPGChatRoom.frmLogin.Show();
                 TRPGChatRoom.frmLogin.Focus();
                 this.sfmlTick.Enabled = false;
+                this.rtxtPublic.Text = "";
                 this.Hide();
                 e.Cancel = true;
             }
@@ -82,27 +132,434 @@ namespace TRPGChatRoom.GUI
             }
         }
 
-        private void FrmMain_SendMessage(object sender, EventArgs e)
+        private void FrmMain_EnterDown(object sender, KeyPressEventArgs e)
         {
-            String msg = this.txtChat.Text;
-            if (msg.Length > 0)
+            if (e.KeyChar == Convert.ToChar(Keys.Return))
             {
-                Byte[] data = Encoding.UTF32.GetBytes(msg);
-                IPEndPoint server = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8802);
-                this.sendClient.Send(data, data.Length, server);
+                this.FrmMain_SendMessage(sender, e);
             }
         }
 
-        //private void FrmMain_GotFocus(object sender, EventArgs e)
-        //{
-        //    //this.sfmlRenderArea = new RenderWindow(this.sfmlView.Handle);
-        //    this.sfmlTick.Enabled = true;
-        //}
+        private void FrmMain_SendMessage(object sender, EventArgs e)
+        {
+            int index = tabChat.SelectedIndex;
+            if (index == 0)
+            {
+                this.SendPublicMessage();
+            }
+            else
+            {
+                this.SendPrivateMessage(index);
+            }
+        }
+
+        private void FrmMain_StartWhisper(object sender, MouseEventArgs e)
+        {
+            int index = this.lstUser.IndexFromPoint(e.Location);
+            if (index != System.Windows.Forms.ListBox.NoMatches)
+            {
+                // to implement
+                // start whisper
+                String user = this.lstUser.Items[index].ToString();
+                String ip = this.userDict[user].ToString();
+                String key = user + ip;
+                if (!this.whisperDict.ContainsKey(key))
+                {
+                    TabPage whisperPage = new TabPage(user);
+                    RichTextBox whisperRtxt = new RichTextBox();
+                    whisperRtxt.Location = new System.Drawing.Point(3, 3);
+                    whisperRtxt.ReadOnly = true;
+                    whisperRtxt.Size = new System.Drawing.Size(787, 203);
+                    whisperRtxt.Text = "";
+                    whisperPage.Controls.Add(whisperRtxt);
+
+                    this.tabChat.TabPages.Add(whisperPage);
+                    this.tabChat.SelectTab(whisperPage);
+
+                    this.whisperDict.Add(user + ip, whisperPage);
+                }                
+            }
+        }
+
+        private void SendPublicMessage()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(this.txtChat.Text.Trim());
+            
+            if (sb.Length > 0)
+            {
+                sb.Append("||||" + this.userName);
+                Byte[] data = Encoding.UTF32.GetBytes(sb.ToString());                
+
+                if (this.isHost)
+                {
+                    this.msgQueue.Enqueue(data);
+                    this.endpointQueue.Enqueue(new IPEndPoint(IPAddress.Any, this.port));
+                }
+                else
+                {
+                    IPEndPoint server = new IPEndPoint(this.userDict["host"], this.port);
+                    this.sendClient.Send(data, data.Length, server);                    
+                }
+
+                this.txtChat.Text = "";
+            }
+        }
+
+        private void SendPrivateMessage(int index)
+        {
+            String user = this.tabChat.TabPages[index].Text;
+            String ip = this.userDict[user].ToString();
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append(this.txtChat.Text.Trim());
+
+            if (sb.Length > 0)
+            {
+                sb.Append("||||" + this.userName + "||||" + ip);
+                Byte[] data = Encoding.UTF32.GetBytes(sb.ToString());
+
+                if (this.isHost)
+                {
+                    this.msgQueue.Enqueue(data);
+                    this.endpointQueue.Enqueue(new IPEndPoint(IPAddress.Any, this.port));
+                }
+                else
+                {
+                    IPEndPoint server = new IPEndPoint(this.userDict["host"], this.port);
+                    this.sendClient.Send(data, data.Length, server);
+                }
+
+                this.txtChat.Text = "";
+            }
+        }
+
+        private String ProcessRollCommand(String rollMsg, String user)
+        {
+            char[] rollSeparator = { ' ' };
+            String[] rollSegments = rollMsg.Split(rollSeparator);
+
+            if (rollSegments.Length == 2)
+            {
+                char[] diceSeparator = { 'd', 'D' };
+                String[] diceData = rollSegments[1].Split(diceSeparator);
+
+                if (diceData.Length == 2)
+                {
+                    int diceNumber = 0;
+                    int diceType = 0;
+                    try
+                    {
+                        diceNumber = Int32.Parse(diceData[0]);
+                        diceType = Int32.Parse(diceData[1]);
+                    }
+                    catch (Exception e)
+                    {
+                        return "";
+                    }
+
+                    int rollResult = 0;
+                    for (int i = 0; i < diceNumber; i++)
+                    {
+                        rollResult += this.rand.Next(diceType) + 1;
+                    }
+                    String resultMsg = user + "掷" + diceNumber + "D" + diceType + "得" + rollResult;
+                    return resultMsg;
+                }
+                else
+                {
+                    return "";
+                }
+            }
+            else if (rollSegments.Length == 3)
+            {
+                char[] diceSeparator = { 'd', 'D' };
+                String[] diceData = rollSegments[1].Split(diceSeparator);
+
+                if (diceData.Length == 2)
+                {
+                    int diceNumber = 0;
+                    int diceType = 0;
+                    int diceModifier = 0;
+                    try
+                    {
+                        diceNumber = Int32.Parse(diceData[0]);
+                        diceType = Int32.Parse(diceData[1]);
+                        diceModifier = Int32.Parse(rollSegments[2]);
+                    }
+                    catch (Exception e)
+                    {
+                        return "";
+                    }
+
+                    int rollResult = 0;
+                    for (int i = 0; i < diceNumber; i++)
+                    {
+                        rollResult += this.rand.Next(diceType) + 1;
+                    }
+                    rollResult += diceModifier;
+                    String modifierText = "";
+                    if (diceModifier > 0) modifierText = "+" + diceModifier.ToString();
+                    if (diceModifier < 0) modifierText = diceModifier.ToString();
+                    String resultMsg = user + "掷" + diceNumber + "D" + diceType + modifierText + "得" + rollResult;
+                    return resultMsg;
+                }
+                else
+                {
+                    return "";
+                }
+            }
+            else
+            {
+                return "";
+            }
+        }
+
+        private bool CheckUserDictionary(String user, IPAddress ip)
+        {
+            if (this.userDict.ContainsKey(user))
+            {
+                if (this.userDict[user].Equals(ip))
+                {
+                    // do nothing
+                }
+                else
+                {
+                    // error
+                    // 2 different users using the same username
+                    return false;
+                }
+            }
+            else
+            {
+                String removeKey = "";
+                foreach (String key in this.userDict.Keys)
+                {
+                    if (userDict[key].Equals(ip))
+                    {
+                        removeKey = key;
+                    }
+                }
+                if (removeKey.Length > 0) this.userDict.Remove(removeKey);
+                this.userDict.Add(user, ip);
+                this.UpdateUserList();
+            }
+            return true;
+        }
+
+        private String ProcessReceivedMessage(String rawMsg, IPEndPoint endpoint)
+        {
+            if (this.isHost)
+            {
+                String[] separator = {"||||"};
+                String[] msgSegments = rawMsg.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+
+                if (msgSegments.Length == 2)
+                {
+                    // public message
+
+                    String msg = msgSegments[0].Trim();
+                    String user = msgSegments[1];
+
+                    if (user.Equals(this.userName))
+                    {
+                        if (endpoint.Address.ToString().Equals("0.0.0.0"))
+                        {
+                            if (msg.StartsWith("/r"))
+                            {
+                                String resultMsg = this.ProcessRollCommand(msg, user);
+                                if (resultMsg.Length > 0)
+                                {
+                                    Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString());
+                                    foreach (IPAddress ip in this.userDict.Values)
+                                    {
+                                        this.sendClient.Send(data, data.Length, new IPEndPoint(ip, this.port));
+                                    }
+                                    return resultMsg;
+                                }
+                            }
+                            else
+                            {
+                                String resultMsg = user + "说：" + msg;
+                                Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString());
+                                foreach (IPAddress ip in this.userDict.Values)
+                                {
+                                    this.sendClient.Send(data, data.Length, new IPEndPoint(ip, this.port));
+                                }
+                                return resultMsg;
+                            }
+                        }
+                        else
+                        {
+                            // error
+                            // same username as host
+
+                            return "";
+                        }
+                    }
+                    else
+                    {
+                        if (!this.CheckUserDictionary(user, endpoint.Address))
+                        {
+                            return "";
+                        }
+                    }
+
+                    if (msg.StartsWith("/r"))
+                    {
+                        String resultMsg = this.ProcessRollCommand(msg, user);
+                        if (resultMsg.Length > 0)
+                        {
+                            Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString());
+                            foreach (IPAddress ip in this.userDict.Values)
+                            {
+                                this.sendClient.Send(data, data.Length, new IPEndPoint(ip, this.port));
+                            }
+                            return resultMsg;
+                        }
+                    }
+                    else
+                    {
+                        String resultMsg = user + "说：" + msg;
+                        Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString());
+                        foreach (IPAddress ip in this.userDict.Values)
+                        {
+                            this.sendClient.Send(data, data.Length, new IPEndPoint(ip, this.port));
+                        }
+                        return resultMsg;
+                    }
+                }
+                else if (msgSegments.Length == 3)
+                {
+                    // private message
+                    String msg = msgSegments[0].Trim();
+                    String user = msgSegments[1];
+                    String destIp = msgSegments[2];
+
+                    if (user.Equals(this.userName))
+                    {
+                        if (endpoint.Address.ToString().Equals("0.0.0.0"))
+                        {
+                            if (msg.StartsWith("/r"))
+                            {
+                                String resultMsg = this.ProcessRollCommand(msg, user);
+                                if (resultMsg.Length > 0)
+                                {
+                                    Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString() + "||||x");
+                                    this.sendClient.Send(data, data.Length, new IPEndPoint(IPAddress.Parse(destIp), this.port));
+                                    return resultMsg + "||||" + user + destIp;
+                                }
+                            }
+                            else
+                            {
+                                String resultMsg = user + "说：" + msg;
+                                Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString() + "||||x");
+                                this.sendClient.Send(data, data.Length, new IPEndPoint(IPAddress.Parse(destIp), this.port));
+                                return resultMsg + "||||" + user + destIp;
+                            }
+                        }
+                        else
+                        {
+                            // error
+                            // same username as host
+
+                            return "";
+                        }
+                    }
+                    else
+                    {
+                        if (!this.CheckUserDictionary(user, endpoint.Address))
+                        {
+                            return "";
+                        }
+                    }
+
+                    if (msg.StartsWith("/r"))
+                    {
+                        String resultMsg = this.ProcessRollCommand(msg, user);
+                        if (resultMsg.Length > 0)
+                        {
+                            Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString() + "||||x");
+                            this.sendClient.Send(data, data.Length, new IPEndPoint(IPAddress.Parse(destIp), this.port));
+                            return "";
+                        }
+                    }
+                    else
+                    {
+                        String resultMsg = user + "说：" + msg;
+                        Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString() + "||||x");
+                        this.sendClient.Send(data, data.Length, new IPEndPoint(IPAddress.Parse(destIp), this.port));
+                        return "";
+                    }
+                }
+                else if (msgSegments.Length == 4)
+                {
+                    // to implement
+                    // host received private chat
+                }
+                else
+                {
+                    // error
+                    // msg should always be segmented into 2, 3 or 4 parts
+                }
+            }
+            else
+            {
+                String[] separator = { "||||" };
+                String[] msgSegments = rawMsg.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+
+                if (msgSegments.Length == 3)
+                {
+                    String msg = msgSegments[0];
+                    String user = msgSegments[1];
+                    String ip = msgSegments[2];
+
+                    if (ip.Equals("0.0.0.0"))
+                    {
+                        return msg;
+                    }
+                    else if (!this.CheckUserDictionary(user, IPAddress.Parse(ip)))
+                    {
+                        return "";
+                    }
+
+                    return msg;
+                }
+                else if (msgSegments.Length == 4)
+                {
+                    String msg = msgSegments[0];
+                    String user = msgSegments[1];
+                    String ip = msgSegments[2];
+
+                    if (ip.Equals("0.0.0.0"))
+                    {
+                        // to implement
+                        // add tabpage for host whisper
+
+                        return msg + "||||host" + this.userDict["host"].ToString();
+                    }
+                    else if (!this.CheckUserDictionary(user, IPAddress.Parse(ip)))
+                    {
+                        return "";
+                    }
+
+                    // to implement
+                    // add tabpage for other whisper
+
+                    return msg + "||||" + user + ip;
+                }
+                else
+                {
+                    return "";
+                }
+            }
+            return "";
+        }
 
         private void Update(object sender, EventArgs e)
         {
             this.SFMLUpdate();
-            this.MSGUpdate();
+            this.MessageUpdate();
         }
 
         private void SFMLUpdate()
@@ -111,13 +568,33 @@ namespace TRPGChatRoom.GUI
             this.sfmlRenderArea.Display();
         }
 
-        private void MSGUpdate()
+        private void MessageUpdate()
         {
             while (this.msgQueue.Count > 0)
             {
                 Byte[] data = this.msgQueue.Dequeue();
                 String msg = Encoding.UTF32.GetString(data);
-                this.rtxtPublic.Text += "\n" + msg;
+                IPEndPoint endpoint = this.endpointQueue.Dequeue();
+                String processedMsg = this.ProcessReceivedMessage(msg, endpoint);
+                if (processedMsg.Length > 0)
+                {
+                    if (this.rtxtPublic.Text.Length > 0) this.rtxtPublic.Text += "\n";
+                    this.rtxtPublic.Text += processedMsg;
+                    this.rtxtPublic.SelectionStart = this.rtxtPublic.Text.Length;
+                    this.rtxtPublic.ScrollToCaret();
+                }
+            }
+        }
+
+        private void UpdateUserList()
+        {
+            if (this.userDict.Count > 0)
+            {
+                this.lstUser.Items.Clear();
+                foreach (String user in this.userDict.Keys)
+                {
+                    this.lstUser.Items.Add(user);
+                }
             }
         }
 
@@ -126,6 +603,7 @@ namespace TRPGChatRoom.GUI
             IPEndPoint remote = new IPEndPoint(IPAddress.Any, 8802);
             Byte[] data = this.recvClient.EndReceive(result, ref remote);
             this.msgQueue.Enqueue(data);
+            this.endpointQueue.Enqueue(remote);
             this.recvClient.BeginReceive(new AsyncCallback(this.ReceiveCallback), null);
         }
     }

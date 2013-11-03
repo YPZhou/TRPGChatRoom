@@ -31,6 +31,15 @@ namespace TRPGChatRoom.GUI
         private void button1_Click(object sender, EventArgs e)
         {
             ((FrmMain)TRPGChatRoom.frmMain).IsHost = true;
+            if (this.txtName.Text.Length > 0)
+            {
+                ((FrmMain)TRPGChatRoom.frmMain).UserName = this.txtName.Text;
+            }
+            else
+            {
+                MessageBox.Show("昵称没填...", "错误");
+                return;
+            }            
             ((FrmMain)TRPGChatRoom.frmMain).Init();
             TRPGChatRoom.frmMain.Show();
             TRPGChatRoom.frmMain.Focus();
@@ -40,6 +49,23 @@ namespace TRPGChatRoom.GUI
         private void button2_Click(object sender, EventArgs e)
         {
             ((FrmMain)TRPGChatRoom.frmMain).IsHost = false;
+            if (this.txtName.Text.Length > 0)
+            {
+                ((FrmMain)TRPGChatRoom.frmMain).UserName = this.txtName.Text;
+            }
+            else
+            {
+                MessageBox.Show("昵称没填...", "错误");
+                return;
+            }
+            if (((FrmMain)TRPGChatRoom.frmMain).BindHost(this.txtIP.Text))
+            {
+            }
+            else
+            {
+                MessageBox.Show("IP地址格式错误", "错误");
+                return;
+            }
             ((FrmMain)TRPGChatRoom.frmMain).Init();
             TRPGChatRoom.frmMain.Show();
             TRPGChatRoom.frmMain.Focus();
