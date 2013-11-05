@@ -47,7 +47,7 @@ namespace TRPGChatRoom.GUI
             this.rand = new Random();
 
             // only for testing whisper, need to be removed later
-            this.userDict.Add("test", IPAddress.Parse("127.0.0.1"));
+            this.userDict.Add("test", IPAddress.Parse("192.168.0.100"));
             this.UpdateUserList();
         }
 
@@ -158,8 +158,6 @@ namespace TRPGChatRoom.GUI
             int index = this.lstUser.IndexFromPoint(e.Location);
             if (index != System.Windows.Forms.ListBox.NoMatches)
             {
-                // to implement
-                // start whisper
                 String user = this.lstUser.Items[index].ToString();
                 String ip = this.userDict[user].ToString();
                 String key = user + ip;
@@ -216,7 +214,7 @@ namespace TRPGChatRoom.GUI
 
             if (sb.Length > 0)
             {
-                sb.Append("||||" + this.userName + "||||" + ip);
+                sb.Append("||||" + this.userName + "||||" + user);
                 Byte[] data = Encoding.UTF32.GetBytes(sb.ToString());
 
                 if (this.isHost)
@@ -434,7 +432,16 @@ namespace TRPGChatRoom.GUI
                     // private message
                     String msg = msgSegments[0].Trim();
                     String user = msgSegments[1];
-                    String destIp = msgSegments[2];
+                    String destUser = msgSegments[2];
+                    IPAddress destIp = null;
+                    if (this.userDict.ContainsKey(destUser))
+                    {
+                        destIp = this.userDict[destUser];
+                    }
+                    else
+                    {
+                        return "";
+                    }
 
                     if (user.Equals(this.userName))
                     {
@@ -446,16 +453,22 @@ namespace TRPGChatRoom.GUI
                                 if (resultMsg.Length > 0)
                                 {
                                     Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString() + "||||x");
-                                    this.sendClient.Send(data, data.Length, new IPEndPoint(IPAddress.Parse(destIp), this.port));
-                                    return resultMsg + "||||" + user + destIp;
+                                    this.sendClient.Send(data, data.Length, new IPEndPoint(destIp, this.port));
+                                    Byte[] sendBackData = Encoding.UTF32.GetBytes(resultMsg + "||||" + destUser + "||||" + destIp.ToString() + "||||x");
+                                    this.msgQueue.Enqueue(sendBackData);
+                                    this.endpointQueue.Enqueue(endpoint);
+                                    return "";
                                 }
                             }
                             else
                             {
                                 String resultMsg = user + "说：" + msg;
                                 Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString() + "||||x");
-                                this.sendClient.Send(data, data.Length, new IPEndPoint(IPAddress.Parse(destIp), this.port));
-                                return resultMsg + "||||" + user + destIp;
+                                this.sendClient.Send(data, data.Length, new IPEndPoint(destIp, this.port));
+                                Byte[] sendBackData = Encoding.UTF32.GetBytes(resultMsg + "||||" + destUser + "||||" + destIp.ToString() + "||||x");
+                                this.msgQueue.Enqueue(sendBackData);
+                                this.endpointQueue.Enqueue(endpoint);
+                                return "";
                             }
                         }
                         else
@@ -480,7 +493,9 @@ namespace TRPGChatRoom.GUI
                         if (resultMsg.Length > 0)
                         {
                             Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString() + "||||x");
-                            this.sendClient.Send(data, data.Length, new IPEndPoint(IPAddress.Parse(destIp), this.port));
+                            this.sendClient.Send(data, data.Length, new IPEndPoint(destIp, this.port));
+                            Byte[] sendBackData = Encoding.UTF32.GetBytes(resultMsg + "||||" + destUser + "||||" + destIp.ToString() + "||||x");
+                            this.sendClient.Send(sendBackData, sendBackData.Length, endpoint);
                             return "";
                         }
                     }
@@ -488,14 +503,41 @@ namespace TRPGChatRoom.GUI
                     {
                         String resultMsg = user + "说：" + msg;
                         Byte[] data = Encoding.UTF32.GetBytes(resultMsg + "||||" + user + "||||" + endpoint.Address.ToString() + "||||x");
-                        this.sendClient.Send(data, data.Length, new IPEndPoint(IPAddress.Parse(destIp), this.port));
+                        this.sendClient.Send(data, data.Length, new IPEndPoint(destIp, this.port));
+                        Byte[] sendBackData = Encoding.UTF32.GetBytes(resultMsg + "||||" + destUser + "||||" + destIp.ToString() + "||||x");
+                        this.sendClient.Send(sendBackData, sendBackData.Length, endpoint);
                         return "";
                     }
                 }
                 else if (msgSegments.Length == 4)
                 {
-                    // to implement
-                    // host received private chat
+                    String msg = msgSegments[0];
+                    String user = msgSegments[1];
+                    String ip = msgSegments[2];
+
+                    if (!this.CheckUserDictionary(user, IPAddress.Parse(ip)))
+                    {
+                        return "";
+                    }
+
+                    String key = user + ip;
+                    if (!this.whisperDict.ContainsKey(key))
+                    {
+                        TabPage whisperPage = new TabPage(user);
+                        RichTextBox whisperRtxt = new RichTextBox();
+                        whisperRtxt.Location = new System.Drawing.Point(3, 3);
+                        whisperRtxt.ReadOnly = true;
+                        whisperRtxt.Size = new System.Drawing.Size(787, 203);
+                        whisperRtxt.Text = "";
+                        whisperPage.Controls.Add(whisperRtxt);
+
+                        this.tabChat.TabPages.Add(whisperPage);
+                        this.tabChat.SelectTab(whisperPage);
+
+                        this.whisperDict.Add(user + ip, whisperPage);
+                    }
+
+                    return msg + "||||" + user + ip;
                 }
                 else
                 {
@@ -543,8 +585,22 @@ namespace TRPGChatRoom.GUI
                         return "";
                     }
 
-                    // to implement
-                    // add tabpage for other whisper
+                    String key = user + ip;
+                    if (!this.whisperDict.ContainsKey(key))
+                    {
+                        TabPage whisperPage = new TabPage(user);
+                        RichTextBox whisperRtxt = new RichTextBox();
+                        whisperRtxt.Location = new System.Drawing.Point(3, 3);
+                        whisperRtxt.ReadOnly = true;
+                        whisperRtxt.Size = new System.Drawing.Size(787, 203);
+                        whisperRtxt.Text = "";
+                        whisperPage.Controls.Add(whisperRtxt);
+
+                        this.tabChat.TabPages.Add(whisperPage);
+                        this.tabChat.SelectTab(whisperPage);
+
+                        this.whisperDict.Add(user + ip, whisperPage);
+                    }
 
                     return msg + "||||" + user + ip;
                 }
@@ -578,10 +634,29 @@ namespace TRPGChatRoom.GUI
                 String processedMsg = this.ProcessReceivedMessage(msg, endpoint);
                 if (processedMsg.Length > 0)
                 {
-                    if (this.rtxtPublic.Text.Length > 0) this.rtxtPublic.Text += "\n";
-                    this.rtxtPublic.Text += processedMsg;
-                    this.rtxtPublic.SelectionStart = this.rtxtPublic.Text.Length;
-                    this.rtxtPublic.ScrollToCaret();
+                    String[] separator = { "||||" };
+                    String[] msgSegments = processedMsg.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+                    if (msgSegments.Length == 1)
+                    {
+                        if (this.rtxtPublic.Text.Length > 0) this.rtxtPublic.Text += "\n";
+                        this.rtxtPublic.Text += processedMsg;
+                        this.rtxtPublic.SelectionStart = this.rtxtPublic.Text.Length;
+                        this.rtxtPublic.ScrollToCaret();
+                    }
+                    else if (msgSegments.Length == 2)
+                    {
+                        String privateMsg = msgSegments[0];
+                        String key = msgSegments[1];
+                        if (this.whisperDict.ContainsKey(key))
+                        {
+                            TabPage tabPage = this.whisperDict[key];
+                            RichTextBox rtxtWhisper = (RichTextBox)tabPage.Controls[0];
+                            if (rtxtWhisper.Text.Length > 0) rtxtWhisper.Text += "\n";
+                            rtxtWhisper.Text += privateMsg;
+                            rtxtWhisper.SelectionStart = rtxtWhisper.Text.Length;
+                            rtxtWhisper.ScrollToCaret();
+                        }
+                    }
                 }
             }
         }
