@@ -4,7 +4,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Windows.Forms;
 using System.Text;
+using SFML.Window;
 using SFML.Graphics;
+
+using TRPGChatRoom.GUI.Map;
 
 namespace TRPGChatRoom.GUI
 {
@@ -24,6 +27,8 @@ namespace TRPGChatRoom.GUI
 
         private Dictionary<String, IPAddress> userDict;
         private Dictionary<String, TabPage> whisperDict;
+
+        private CMap map;
 
         private Random rand;
 
@@ -47,8 +52,8 @@ namespace TRPGChatRoom.GUI
             this.rand = new Random();
 
             // only for testing whisper, need to be removed later
-            this.userDict.Add("test", IPAddress.Parse("192.168.0.100"));
-            this.UpdateUserList();
+            //this.userDict.Add("test", IPAddress.Parse("192.168.0.100"));
+            //this.UpdateUserList();
         }
 
         public bool IsHost
@@ -106,6 +111,9 @@ namespace TRPGChatRoom.GUI
         {
             this.sfmlTick.Enabled = true;            
             this.recvClient.BeginReceive(new AsyncCallback(this.ReceiveCallback), null);
+
+            this.map = new CMap();
+            this.map.Init();
         }
 
         private void FrmMain_Load(object sender, EventArgs e)
@@ -620,7 +628,21 @@ namespace TRPGChatRoom.GUI
 
         private void SFMLUpdate()
         {
+            //Vector2i mousePos = Mouse.GetPosition(this.sfmlRenderArea);
+
+            //if (Mouse.IsButtonPressed(Mouse.Button.Right) &&
+            //    mousePos.X >= 0 &&
+            //    mousePos.Y >= 0 &&
+            //    mousePos.X <= 799 &&
+            //    mousePos.Y <= 479)
+            //{
+            //    this.lbNotice.Text = mousePos.ToString();
+            //}
+
+            this.map.Update(this.sfmlRenderArea);
+
             this.sfmlRenderArea.Clear(Color.Black);
+            this.map.Render(this.sfmlRenderArea);
             this.sfmlRenderArea.Display();
         }
 
